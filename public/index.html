@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Chat</title>
+  </head>
+
+  <body>
+    <div id="root">
+      <h1 id="title">Chat</h1>
+
+      <div id="input-container">
+        <input id="input" />
+        <button id="send">Send</button>
+      </div>
+
+      <div id="messages"></div>
+    </div>
+
+    <script>
+      const HOST = 'https://thiss-graphql-chat.onrender.com';
+
+      const input = document.getElementById('input');
+      const sendBtn = document.getElementById('send');
+      const messageContainer = document.getElementById('messages');
+
+      const getId = () => String(Math.floor(Math.random() * 1e5));
+
+      const senderID = getId();
+
+      const sendMessage = async () => {
+        const text = input.value;
+        if (!text) return;
+
+        const message = {
+          id: getId(),
+          text,
+          sender: senderID,
+        };
+
+        const { data, errors } = await fetch(
+          `${HOST}/graphql?query=
+            query SendMessage($message: MessageInput) {
+              sendMessage(message: $message) {
+                id
+                text
+                sender
+              }
+            }
+            &variables=${JSON.stringify({ message })}`,
+        ).then((res) => res.json());
+
+        if (data) {
+          console.log({ data });
+        }
+
+        if (errors) {
+          console.error({ errors });
+        }
+
+        input.value = '';
+      };
+
+      sendBtn.onclick = sendMessage;
+      input.onkeypress = (e) => {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      };
+
+      const es = new EventSource(
+        `${HOST}/graphql?query=
+          subscription {
+            messages {
+              id
+              text
+              sender
+            }
+          }`,
+      );
+
+      es.onmessage = (msg, b) => {
+        const { id, text, sender } = JSON.parse(msg.data).data.messages;
+
+        const p = document.createElement('p');
+
+        p.classList.add('msg');
+        p.classList.add(sender === senderID ? 'msg-mine' : 'msg-theirs');
+        p.innerText = text;
+
+        messageContainer.appendChild(p);
+      };
+    </script>
+  </body>
+</html>

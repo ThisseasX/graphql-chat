@@ -1,0 +1,19 @@
+type Query {
+  sendMessage(message: MessageInput): Message!
+}
+
+type Subscription {
+  messages: Message!
+}
+
+type Message {
+  id: ID!
+  text: String!
+  sender: ID!
+}
+
+input MessageInput {
+  id: ID!
+  text: String!
+  sender: ID!
+}
